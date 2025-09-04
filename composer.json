@@ -1,0 +1,21 @@
+{
+    "name": "falc0shka/php-metrics",
+    "type": "library",
+    "description": "PHP metrics library for stability and performance monitoring projects.",
+    "keywords": ["php", "metrics"],
+    "license": "BSD-2-Clause",
+    "autoload": {
+        "psr-4": {
+            "Falc0shka\\PhpMetrics\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "falc0shka",
+            "email": "falc0shka@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^7.4|^8.0"
+    }
+}
