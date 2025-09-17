@@ -48,6 +48,7 @@ class APCU_Logger extends BaseLogger
             case 'PROCESS_START':
                 // Save previous APCU data
                 $this->saveApcuData();
+
                 // Increment requests_hit_count metric
                 $this->incrementApcuBaseMetric('requests_hit_count', 1);
                 break;
@@ -58,12 +59,14 @@ class APCU_Logger extends BaseLogger
             case 'ROUTE_FINISH_SUCCESS':
                 // Increment requests_finish_success_count metric
                 $this->incrementApcuBaseMetric('requests_finish_success_count', 1);
+
                 // Increment standard metrics
                 $this->incrementApcuStandardMetrics($standardMetrics);
                 break;
             case 'ROUTE_FINISH_EXCEPTION':
                 // Increment requests_finish_exception_count metric
                 $this->incrementApcuBaseMetric('requests_finish_exception_count', 1);
+
                 // Increment standard metrics
                 $this->incrementApcuStandardMetrics($standardMetrics, false);
                 break;
@@ -95,8 +98,17 @@ class APCU_Logger extends BaseLogger
 
             // Perform saving from APCU even metrics to file
             if ($apcuEvenId !== $currentApcuId) {
+
+                $this->loggingStartTimestamp = microtime(true);
+
                 apcu_store('PhpMetrics_EVEN_id', $currentApcuId);
                 $this->saveApcuToFile($apcuEvenId);
+
+                $loggingTime = round(microtime(true) - $this->loggingStartTimestamp, 3);
+
+                // Increment logging metrics
+                $this->incrementApcuBaseMetric('logging_max_memory', $this->_getProcessMemoryUsage());
+                $this->incrementApcuBaseMetric('logging_execution_time', $loggingTime);
             }
         } else {
             if (!apcu_exists('PhpMetrics_ODD_id')) {
@@ -108,8 +120,17 @@ class APCU_Logger extends BaseLogger
 
             // Perform saving from APCU odd metrics to file
             if ($apcuOddId !== $currentApcuId) {
+
+                $this->loggingStartTimestamp = microtime(true);
+
                 apcu_store('PhpMetrics_ODD_id', $currentApcuId);
                 $this->saveApcuToFile($apcuOddId);
+
+                $loggingTime = round(microtime(true) - $this->loggingStartTimestamp, 3);
+
+                // Increment logging metrics
+                $this->incrementApcuBaseMetric('logging_max_memory', $this->_getProcessMemoryUsage());
+                $this->incrementApcuBaseMetric('logging_execution_time', $loggingTime);
             }
         }
     }
@@ -167,6 +188,13 @@ class APCU_Logger extends BaseLogger
                 }
                 apcu_delete($apcuKey);
             }
+        }
+
+        // Save tags count
+        $loggingTagsCount = count($apcuTags) + count($apcuCustomTags);
+        if ($loggingTagsCount > 0) {
+            $row = "logging_tags_count,UNKNOWN,$loggingTagsCount\n";
+            file_put_contents($logFile, $row, LOCK_EX | FILE_APPEND);
         }
 
         apcu_delete($apcuTagsKey);
@@ -360,4 +388,25 @@ class APCU_Logger extends BaseLogger
         unlink($baseDir . '.processing');
     }
 
+    /**
+     * Returns memory usage from /proc<PID>/status in MB.
+     *
+     * @return float|int sum of VmRSS and VmSwap in MB. On error returns false.
+     */
+    protected function _getProcessMemoryUsage(): float
+    {
+        $status = file_get_contents('/proc/' . getmypid() . '/status');
+
+        if (!$status) {
+            return 0;
+        }
+
+        $matchArr = [];
+        preg_match_all('~^(VmRSS|VmSwap):\s*([0-9]+).*$~im', $status, $matchArr);
+
+        if (!isset($matchArr[2][0]) || !isset($matchArr[2][1])) {
+            return 0;
+        }
+        return round((intval($matchArr[2][0]) + intval($matchArr[2][1])) / 1024, 2);
+    }
 }

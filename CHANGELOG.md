@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 1.5.1 - 2025-09-17
+
+### Features
+
+* Add logging base metrics
+* Add composer install command
+
+---
+
 ## 1.5.0 - 2025-09-02
 
 ### Features

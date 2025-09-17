@@ -5,7 +5,7 @@
 
 ## Метрики
 
-## Список возможных событий
+### Список возможных событий
 
 - **PROCESS_START** - начало работы скрипта
 - **ROUTE_START** - вызов целевого метода
@@ -61,7 +61,13 @@
 
 ## Использование в коде
 
-1. Инициализация пакета
+1. Установка пакета
+
+    ```composer
+    composer require falc0shka/php-metrics
+    ```
+
+2. Инициализация пакета
 
     ```php
     use Falc0shka\PhpMetrics\PhpMetrics;
@@ -69,7 +75,7 @@
     $phpMetrics = PhpMetrics::getInstance();
     ```
 
-2. Настройка
+3. Настройка
 
     ```php
     $phpMetrics->setTag($module . '::' . $action)          // Установить tag для текущего запроса

@@ -16,11 +16,18 @@ class BaseLogger implements LoggerInterface
         'requests_start_count',
         'requests_finish_success_count',
         'requests_finish_exception_count',
+        'logging_max_memory',
+        'logging_execution_time',
     ];
 
     protected array $standardMetrics;
 
     protected array $customMetrics = [];
+
+    /**
+     * Timestamps
+     */
+    protected float $loggingStartTimestamp;
 
     public function __construct(array $standardMetrics)
     {
