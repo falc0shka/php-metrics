@@ -23,6 +23,10 @@
 - **requests_start_count** - количество вызовов целевого метода
 - **requests_finish_success_count** - количество нормальных окончаний работы скрипта
 - **requests_finish_exception_count** - количество окончаний работы скрипта по эксепшену
+- **system_cpu_usage** - процент загруки процессора
+- **system_load_average** - среднее значение загруженности системы
+- **system_memory_usage** - рамер используемой памяти
+- **system_memory_max** - максимальный размер памяти
 - **logging_max_memory** - максимальный расход памяти при формирования лога
 - **logging_execution_time** - время формирования лога
 - **logging_tags_count** - общее количество тегов
@@ -66,110 +70,118 @@
 
 1. Установка пакета
 
-    ```composer
-    composer require falc0shka/php-metrics
-    ```
+```composer
+composer require falc0shka/php-metrics
+```
 
 2. Инициализация пакета
 
-    ```php
-    use Falc0shka\PhpMetrics\PhpMetrics;
-    
-    $phpMetrics = PhpMetrics::getInstance();
-    ```
+```php
+use Falc0shka\PhpMetrics\PhpMetrics;
+
+$phpMetrics = PhpMetrics::getInstance();
+```
 
 3. Настройка
 
-    ```php
-    $phpMetrics->setTag($module . '::' . $action)          // Установить tag для текущего запроса
-                ->setLogPath(dirname(__FILE__) . '/log');   // Установить путь для сохранения файлов (для файловых логгеров)
-    ```
+```php
+$phpMetrics->setTag($module . '::' . $action)          // Установить tag для текущего запроса
+            ->setLogPath(dirname(__FILE__) . '/log');   // Установить путь для сохранения файлов (для файловых логгеров)
+```
 
 4. Отключение
 
-    ```php
-    $phpMetrics->disableMetrics();
-    ```
+```php
+$phpMetrics->disableMetrics();
+```
 
 5. Вызов событий
 
-    ```php
-    try {
+```php
+try {
+
+    // Вызов события начала скрипта
+    $phpMetrics->dispatchEvent('ROUTE_START');
     
-        // Вызов события начала скрипта
-        $phpMetrics->dispatchEvent('ROUTE_START');
-        
-        // ...some logic...
-        $out = call_user_func([$controller, $action]);
-        $oResponce->output($out);
-        
-        // Вызов события нормального окончания скрипта
-        $phpMetrics->dispatchEvent('ROUTE_FINISH_SUCCESS');
-        
-    } catch (Exception $e){
+    // ...some logic...
+    $out = call_user_func([$controller, $action]);
+    $oResponce->output($out);
     
-        // Вызов события окончания скрипта по эксепшену
-        $phpMetrics->dispatchEvent('ROUTE_FINISH_EXCEPTION');
-        
-        // ...some exception logic...
-        if(method_exists($e, 'outputError')){
-            $e->outputError();
-        } else {
-            die($e->getMessage());
-        };
-       
-    }
-    ```
+    // Вызов события нормального окончания скрипта
+    $phpMetrics->dispatchEvent('ROUTE_FINISH_SUCCESS');
+    
+} catch (Exception $e){
+
+    // Вызов события окончания скрипта по эксепшену
+    $phpMetrics->dispatchEvent('ROUTE_FINISH_EXCEPTION');
+    
+    // ...some exception logic...
+    if(method_exists($e, 'outputError')){
+        $e->outputError();
+    } else {
+        die($e->getMessage());
+    };
+   
+}
+```
 
 6. Кастомные метрики
 
 Для подсчета кастомных необходимо вызвать событие CUSTOM_METRIC,
 и допонительное передать массив с названием метрики, тегом и значением
 
-   ```php
-   $phpMetrics->dispatchEvent('CUSTOM_METRIC', [
-      'metric' => 'test_custom_metric_count',
-      'tag' => 'CUSTOM_METRIC_TAG',
-      'value' => 1,
-   ]);
-   ```
+```php
+$phpMetrics->dispatchEvent('CUSTOM_METRIC', [
+  'metric' => 'test_custom_metric_count',
+  'tag' => 'CUSTOM_METRIC_TAG',
+  'value' => 1,
+]);
+```
+
+7. Отключение системных метрик
+
+Для отключения процесса сбора системных метрик
+
+```php
+$phpMetrics->disableSystemMetrics();
+```
 
 ## Дополнительные возможности
 
 1. Получить текущие значения метрик (DEPRECATED)
 
-    ```php
-    $phpMetrics->getMetrics();
-    ```
+```php
+$phpMetrics->getMetrics();
+```
    
 2. Возможно установить метрики самостоятельно, а не использовать события (DEPRECATED)
 
-    ```php
-    $phpMetrics->setMetrics($standardMetrics);
-    ```
+```php
+$phpMetrics->setMetrics($standardMetrics);
+```
    
-    Формат $standardMetrics
+Формат $standardMetrics
 
-    ```php
-    $standardMetrics = [
-        'metric1' => value1,
-        'metric2' => value2,
-        'metric3' => value3,
-    ];
-    ```
+```php
+$standardMetrics = [
+    'metric1' => value1,
+    'metric2' => value2,
+    'metric3' => value3,
+];
+```
 
-   Пример:
+Пример:
 
-   ```php
-   // Calculate any metric
-   $metricValue = calculateMetric();
-   
-   // Get current standardMetrics
-   $standardMetrics = $phpMetrics->getMetrics();
-   
-   // Update metric value
-   $standardMetrics['metricKey'] = $metricValue;
-   
-   // Set standardMetrics
-   $phpMetrics->setMetrics($standardMetrics);
-   ```
+```php
+// Calculate any metric
+$metricValue = calculateMetric();
+
+// Get current standardMetrics
+$standardMetrics = $phpMetrics->getMetrics();
+
+// Update metric value
+$standardMetrics['metricKey'] = $metricValue;
+
+// Set standardMetrics
+$phpMetrics->setMetrics($standardMetrics);
+```

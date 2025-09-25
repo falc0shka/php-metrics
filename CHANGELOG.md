@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## 1.5.3 - 2025-09-25
+
+### Features
+
+* Add system metrics
+
+---
+
+## 1.5.2 - 2025-09-20
+
+### Fixes
+
+* Fix some errors
+
+---
+
 ## 1.5.1 - 2025-09-17
 
 ### Features
