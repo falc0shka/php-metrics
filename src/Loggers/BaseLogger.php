@@ -18,6 +18,10 @@ class BaseLogger implements LoggerInterface
         'requests_finish_exception_count',
         'logging_max_memory',
         'logging_execution_time',
+        'system_cpu_usage',
+        'system_load_average',
+        'system_memory_usage',
+        'system_memory_max',
     ];
 
     protected array $standardMetrics;
@@ -28,6 +32,8 @@ class BaseLogger implements LoggerInterface
      * Timestamps
      */
     protected float $loggingStartTimestamp;
+
+    public bool $disableSystemMetrics = false;
 
     public function __construct(array $standardMetrics)
     {
@@ -46,4 +52,8 @@ class BaseLogger implements LoggerInterface
 
     public function getLogs(): void {}
 
+    public function disableSystemMetrics(): void
+    {
+        $this->disableSystemMetrics = true;
+    }
 }

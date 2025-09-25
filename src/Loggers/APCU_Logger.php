@@ -109,6 +109,17 @@ class APCU_Logger extends BaseLogger
                 // Increment logging metrics
                 $this->incrementApcuBaseMetric('logging_max_memory', $this->_getProcessMemoryUsage());
                 $this->incrementApcuBaseMetric('logging_execution_time', $loggingTime);
+
+                if (!$this->disableSystemMetrics) {
+                    // Collect system cpu usage
+                    $this->incrementApcuBaseMetric('system_cpu_usage', $this->_getCpuUsage());
+                    // Collect system load average
+                    $this->incrementApcuBaseMetric('system_load_average', $this->_getLoadAverage());
+                    // Collect system memory usage
+                    $this->incrementApcuBaseMetric('system_memory_usage', $this->_getSystemMemoryUsage());
+                    // Collect system memory installed
+                    $this->incrementApcuBaseMetric('system_memory_max', $this->_getSystemMemoryMax());
+                }
             }
         } else {
             if (!apcu_exists('PhpMetrics_ODD_id')) {
@@ -131,6 +142,17 @@ class APCU_Logger extends BaseLogger
                 // Increment logging metrics
                 $this->incrementApcuBaseMetric('logging_max_memory', $this->_getProcessMemoryUsage());
                 $this->incrementApcuBaseMetric('logging_execution_time', $loggingTime);
+
+                if (!$this->disableSystemMetrics) {
+                    // Collect system cpu usage
+                    $this->incrementApcuBaseMetric('system_cpu_usage', $this->_getCpuUsage());
+                    // Collect system load average
+                    $this->incrementApcuBaseMetric('system_load_average', $this->_getLoadAverage());
+                    // Collect system memory usage
+                    $this->incrementApcuBaseMetric('system_memory_usage', $this->_getSystemMemoryUsage());
+                    // Collect system memory installed
+                    $this->incrementApcuBaseMetric('system_memory_max', $this->_getSystemMemoryMax());
+                }
             }
         }
     }
@@ -388,25 +410,66 @@ class APCU_Logger extends BaseLogger
         unlink($baseDir . '.processing');
     }
 
-    /**
-     * Returns memory usage from /proc<PID>/status in MB.
-     *
-     * @return float|int sum of VmRSS and VmSwap in MB. On error returns false.
-     */
+    protected function _getCpuUsage(): float
+    {
+        $data = shell_exec("top -bn1 | grep 'Cpu(s)'");
+
+        if (!$data) {
+            return 0;
+        }
+
+        preg_match_all('~([0-9.]+).*id~im', $data, $matchArr);
+
+        $idle = floatVal($matchArr[1][0]);
+
+        return 100 - $idle;
+    }
+
     protected function _getProcessMemoryUsage(): float
     {
-        $status = file_get_contents('/proc/' . getmypid() . '/status');
+        $data = getrusage();
+        return isset($data['ru_maxrss']) ? round($data['ru_maxrss'] / 1024, 2) : 0;
+    }
 
-        if (!$status) {
+    protected function _getSystemMemoryUsage(): float
+    {
+        $data = file_get_contents('/proc/meminfo');
+
+        if (!$data) {
             return 0;
         }
 
         $matchArr = [];
-        preg_match_all('~^(VmRSS|VmSwap):\s*([0-9]+).*$~im', $status, $matchArr);
+        preg_match_all('~^(MemTotal|MemFree):\s*([0-9]+).*$~im', $data, $matchArr);
 
         if (!isset($matchArr[2][0]) || !isset($matchArr[2][1])) {
             return 0;
         }
-        return round((intval($matchArr[2][0]) + intval($matchArr[2][1])) / 1024, 2);
+        return round((intval($matchArr[2][0]) - intval($matchArr[2][1])) / 1024, 2);
+    }
+
+    protected function _getSystemMemoryMax(): float
+    {
+        $data = file_get_contents('/proc/meminfo');
+
+        if (!$data) {
+            return 0;
+        }
+
+        $matchArr = [];
+        preg_match_all('~^MemTotal:\s*([0-9]+).*$~im', $data, $matchArr);
+
+        return isset($matchArr[1][0]) ? round(intval($matchArr[1][0]) / 1024, 2) : 0;
+    }
+
+    protected function _getLoadAverage(): float
+    {
+        $data = file_get_contents('/proc/loadavg');
+
+        if (!$data) {
+            return 0;
+        }
+
+        return floatval(preg_split('/\s+/', trim($data))[0]);
     }
 }

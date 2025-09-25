@@ -116,6 +116,12 @@ final class PhpMetrics
         return self::$instance;
     }
 
+    public function disableSystemMetrics(): PhpMetrics
+    {
+        $this->logger->disableSystemMetrics();
+
+        return self::$instance;
+    }
 
     public function getLogs() {
         $this->logger->getLogs();

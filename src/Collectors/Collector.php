@@ -72,27 +72,9 @@ class Collector implements CollectorInterface
         return $this->standardMetrics;
     }
 
-    /**
-     * Returns memory usage from /proc<PID>/status in MB.
-     *
-     * @return float|int sum of VmRSS and VmSwap in MB. On error returns false.
-     */
     protected function _getProcessMemoryUsage(): float
     {
-        $status = file_get_contents('/proc/' . getmypid() . '/status');
-
-        if (!$status) {
-            return 0;
-        }
-
-        $matchArr = [];
-        preg_match_all('~^(VmRSS|VmSwap):\s*([0-9]+).*$~im', $status, $matchArr);
-
-        if (!isset($matchArr[2][0]) || !isset($matchArr[2][1])) {
-            return 0;
-        }
-        return round((intval($matchArr[2][0]) + intval($matchArr[2][1])) / 1024, 2);
+        $data = getrusage();
+        return isset($data['ru_maxrss']) ? round($data['ru_maxrss'] / 1024, 2) : 0;
     }
-
-
 }
