@@ -110,7 +110,7 @@ class APCU_Logger extends BaseLogger
                 $this->incrementApcuBaseMetric('logging_max_memory', $this->_getProcessMemoryUsage());
                 $this->incrementApcuBaseMetric('logging_execution_time', $loggingTime);
 
-                if (!$this->disableSystemMetrics) {
+                if ($this->enableSystemMetrics) {
                     // Collect system cpu usage
                     $this->incrementApcuBaseMetric('system_cpu_usage', $this->_getCpuUsage());
                     // Collect system load average
@@ -143,7 +143,7 @@ class APCU_Logger extends BaseLogger
                 $this->incrementApcuBaseMetric('logging_max_memory', $this->_getProcessMemoryUsage());
                 $this->incrementApcuBaseMetric('logging_execution_time', $loggingTime);
 
-                if (!$this->disableSystemMetrics) {
+                if ($this->enableSystemMetrics) {
                     // Collect system cpu usage
                     $this->incrementApcuBaseMetric('system_cpu_usage', $this->_getCpuUsage());
                     // Collect system load average

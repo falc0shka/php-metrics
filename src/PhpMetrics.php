@@ -116,9 +116,9 @@ final class PhpMetrics
         return self::$instance;
     }
 
-    public function disableSystemMetrics(): PhpMetrics
+    public function enableSystemMetrics(): PhpMetrics
     {
-        $this->logger->disableSystemMetrics();
+        $this->logger->enableSystemMetrics();
 
         return self::$instance;
     }

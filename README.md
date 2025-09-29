@@ -138,12 +138,12 @@ $phpMetrics->dispatchEvent('CUSTOM_METRIC', [
 ]);
 ```
 
-7. Отключение системных метрик
+7. Включение системных метрик
 
-Для отключения процесса сбора системных метрик
+Для включения процесса сбора системных метрик
 
 ```php
-$phpMetrics->disableSystemMetrics();
+$phpMetrics->enableSystemMetrics();
 ```
 
 ## Дополнительные возможности

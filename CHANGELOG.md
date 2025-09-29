@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.5.4 - 2025-09-29
+
+### Features
+
+* Add system metrics enable switch
+
+---
+
 ## 1.5.3 - 2025-09-25
 
 ### Features

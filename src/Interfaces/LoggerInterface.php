@@ -19,6 +19,6 @@ interface LoggerInterface
 
     public function getLogs(): void;
 
-    public function disableSystemMetrics(): void;
+    public function enableSystemMetrics(): void;
 
 }
