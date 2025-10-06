@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 1.6.0 - 2025-10-06
+
+### Features
+
+* Add db_requests_time_max metric
+* Add api_requests_time_max metric
+
+---
+
 ## 1.5.4 - 2025-09-29
 
 ### Features

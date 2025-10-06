@@ -14,8 +14,10 @@ class Collector implements CollectorInterface
         'execution_time' => 0,
         'db_requests' => 0,
         'db_requests_time' => 0,
+        'db_requests_time_max' => 0,
         'api_requests' => 0,
         'api_requests_time' => 0,
+        'api_requests_time_max' => 0,
     ];
 
     /**
@@ -54,14 +56,18 @@ class Collector implements CollectorInterface
                 $this->dbRequestTimestamp = microtime(true);
                 break;
             case 'DB_RESPONSE':
-                $this->standardMetrics['db_requests_time'] += round(microtime(true) - $this->dbRequestTimestamp, 3);
+                $dbRequestTime = round(microtime(true) - $this->dbRequestTimestamp, 3);
+                $this->standardMetrics['db_requests_time'] += $dbRequestTime;
+                $this->standardMetrics['db_requests_time_max'] = max($this->standardMetrics['db_requests_time_max'], $dbRequestTime);
                 break;
             case 'API_REQUEST':
                 $this->standardMetrics['api_requests']++;
                 $this->apiRequestTimestamp = microtime(true);
                 break;
             case 'API_RESPONSE':
-                $this->standardMetrics['api_requests_time'] += round(microtime(true) - $this->apiRequestTimestamp, 3);
+                $apiRequestTime = round(microtime(true) - $this->apiRequestTimestamp, 3);
+                $this->standardMetrics['api_requests_time'] += $apiRequestTime;
+                $this->standardMetrics['api_requests_time_max'] = max($this->standardMetrics['api_requests_time_max'], $apiRequestTime);
                 break;
             default:
         }
