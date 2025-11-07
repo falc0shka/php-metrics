@@ -91,7 +91,7 @@
 3. Настройка
 
     ```php
-    $samoMetrics->setTag($module . '::' . $action)          // Установить tag для текущего запроса
+    $phpMetrics->setTag($module . '::' . $action)           // Установить tag для текущего запроса
         ->setProject('test_project')                        // Установить название проекта
         ->setLogMaxAge(30)                                  // Установить срок жизни лог файлов
         ->setLogPath(dirname(__FILE__) . '/log');           // Установить путь для сохранения файлов (для файловых логгеров)
