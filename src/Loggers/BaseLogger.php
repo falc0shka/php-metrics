@@ -9,6 +9,8 @@ use Falc0shka\PhpMetrics\Interfaces\LoggerInterface;
 class BaseLogger implements LoggerInterface
 {
 
+    protected string $project = 'main';
+
     protected string $tag = 'UNKNOWN';
 
     protected array $baseMetrics = [
@@ -27,6 +29,10 @@ class BaseLogger implements LoggerInterface
     protected array $standardMetrics;
 
     protected array $customMetrics = [];
+
+    protected string $logPath;
+
+    protected int $logMaxAge = 0; // Max log files age in days (0 - unlimited)
 
     /**
      * Timestamps
@@ -55,5 +61,38 @@ class BaseLogger implements LoggerInterface
     public function enableSystemMetrics(): void
     {
         $this->enableSystemMetrics = true;
+    }
+
+    public function setLogPath(string $logPath): void
+    {
+        $this->logPath = $logPath;
+    }
+
+    public function getLogPath(): string
+    {
+        return $this->logPath;
+    }
+
+    public function setLogMaxAge(int $logMaxAge): void
+    {
+        $this->logMaxAge = $logMaxAge;
+    }
+
+    public function setProject(string $project): void
+    {
+        if ($project) {
+            $this->project = $this->formatProjectName($project);
+        }
+    }
+
+    function formatProjectName(string $project): string
+    {
+        $project = trim($project);
+        $project = preg_replace('/[^a-zA-Z0-9_]/u', ' ', $project);
+        $project = strtolower($project);
+        $project = preg_replace('/\s+/', ' ', $project);
+        $project = str_replace(' ', '_', $project);
+        $project = mb_substr($project, 0, 20);
+        return $project;
     }
 }

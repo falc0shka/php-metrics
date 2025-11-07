@@ -13,8 +13,6 @@ class APCU_Logger extends BaseLogger
 
     protected bool $isEven;
 
-    protected string $logPath;
-
     public function __construct(array $standardMetrics)
     {
         parent::__construct($standardMetrics);
@@ -89,11 +87,12 @@ class APCU_Logger extends BaseLogger
         $currentApcuId = $this->currentApcuId;
 
         if ($this->isEven) {
-            if (!apcu_exists('PhpMetrics_EVEN_id')) {
-                apcu_store('PhpMetrics_EVEN_id', $currentApcuId);
+            $apcuEvenIdKey = 'PhpMetrics_' . $this->project . '_EVEN_id';
+            if (!apcu_exists($apcuEvenIdKey)) {
+                apcu_store($apcuEvenIdKey, $currentApcuId);
                 $apcuEvenId = $currentApcuId;
             } else {
-                $apcuEvenId = apcu_fetch('PhpMetrics_EVEN_id');
+                $apcuEvenId = apcu_fetch($apcuEvenIdKey);
             }
 
             // Perform saving from APCU even metrics to file
@@ -101,7 +100,7 @@ class APCU_Logger extends BaseLogger
 
                 $this->loggingStartTimestamp = microtime(true);
 
-                apcu_store('PhpMetrics_EVEN_id', $currentApcuId);
+                apcu_store($apcuEvenIdKey, $currentApcuId);
                 $this->saveApcuToFile($apcuEvenId);
 
                 $loggingTime = round(microtime(true) - $this->loggingStartTimestamp, 3);
@@ -122,11 +121,12 @@ class APCU_Logger extends BaseLogger
                 }
             }
         } else {
-            if (!apcu_exists('PhpMetrics_ODD_id')) {
-                apcu_store('PhpMetrics_ODD_id', $currentApcuId);
+            $apcuOddIdKey = 'PhpMetrics_' . $this->project . '_ODD_id';
+            if (!apcu_exists($apcuOddIdKey)) {
+                apcu_store($apcuOddIdKey, $currentApcuId);
                 $apcuOddId = $currentApcuId;
             } else {
-                $apcuOddId = apcu_fetch('PhpMetrics_ODD_id');
+                $apcuOddId = apcu_fetch($apcuOddIdKey);
             }
 
             // Perform saving from APCU odd metrics to file
@@ -134,7 +134,7 @@ class APCU_Logger extends BaseLogger
 
                 $this->loggingStartTimestamp = microtime(true);
 
-                apcu_store('PhpMetrics_ODD_id', $currentApcuId);
+                apcu_store($apcuOddIdKey, $currentApcuId);
                 $this->saveApcuToFile($apcuOddId);
 
                 $loggingTime = round(microtime(true) - $this->loggingStartTimestamp, 3);
@@ -159,7 +159,7 @@ class APCU_Logger extends BaseLogger
 
     protected function saveApcuToFile(int $apcuId): void
     {
-        $logPath = $this->logPath . '/metrics/' . date('Y-m-d\TH', $apcuId * 60);
+        $logPath = $this->logPath . '/metrics/' . $this->project . '/' . date('Y-m-d\TH', $apcuId * 60);
         if (!file_exists($logPath)) {
             mkdir($logPath, 0777, true);
         }
@@ -171,7 +171,7 @@ class APCU_Logger extends BaseLogger
         // Save base metrics
         foreach ($this->baseMetrics as $metricKey) {
             foreach ($apcuTags as $apcuTag) {
-                $apcuKey = 'PhpMetrics_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $metricKey . '_{{' . $apcuTag . '}}';
+                $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $metricKey . '_{{' . $apcuTag . '}}';
                 if ($apcuValue = apcu_fetch($apcuKey)) {
                     $row = "$metricKey,$apcuTag,$apcuValue\n";
                     file_put_contents($logFile, $row, LOCK_EX | FILE_APPEND);
@@ -185,7 +185,7 @@ class APCU_Logger extends BaseLogger
             $successTags = ['success', 'exception'];
             foreach ($successTags as $successTag) {
                 foreach ($apcuTags as $apcuTag) {
-                    $apcuKey = 'PhpMetrics_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $successTag . '_' . $metricKey . '_{{' . $apcuTag . '}}';
+                    $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $successTag . '_' . $metricKey . '_{{' . $apcuTag . '}}';
                     if ($apcuValue = apcu_fetch($apcuKey)) {
                         $row = "{$successTag}_$metricKey,$apcuTag,$apcuValue\n";
                         file_put_contents($logFile, $row, LOCK_EX | FILE_APPEND);
@@ -203,7 +203,7 @@ class APCU_Logger extends BaseLogger
 
         foreach ($apcuCustomTags as $apcuCustomTag) {
             foreach ($apcuCustomMetrics as $apcuCustomMetric) {
-                $apcuKey = 'PhpMetrics_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $apcuCustomMetric . '_{{' . $apcuCustomTag . '}}';
+                $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $apcuCustomMetric . '_{{' . $apcuCustomTag . '}}';
                 if ($apcuValue = apcu_fetch($apcuKey)) {
                     $row = "$apcuCustomMetric,$apcuCustomTag,$apcuValue\n";
                     file_put_contents($logFile, $row, LOCK_EX | FILE_APPEND);
@@ -226,17 +226,17 @@ class APCU_Logger extends BaseLogger
 
     protected function getApcuTagsKey(): string
     {
-        return 'PhpMetrics_' . ($this->isEven ? 'EVEN' : 'ODD') . '_tags';
+        return 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_tags';
     }
 
     protected function getApcuCustomTagsKey(): string
     {
-        return 'PhpMetrics_' . ($this->isEven ? 'EVEN' : 'ODD') . '_customTags';
+        return 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_customTags';
     }
 
     protected function getApcuCustomMetricsKey(): string
     {
-        return 'PhpMetrics_' . ($this->isEven ? 'EVEN' : 'ODD') . '_customMetrics';
+        return 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_customMetrics';
     }
 
     /**
@@ -259,7 +259,7 @@ class APCU_Logger extends BaseLogger
         }
 
         // Increment one metric
-        $apcuKey = 'PhpMetrics_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $metricKey . '_{{' . $this->tag . '}}';
+        $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $metricKey . '_{{' . $this->tag . '}}';
         $apcuValue = apcu_entry($apcuKey, fn() => 0);
         apcu_store($apcuKey, $apcuValue + $metricValue);
     }
@@ -287,7 +287,7 @@ class APCU_Logger extends BaseLogger
         $successTags = ['success', 'exception'];
         foreach ($successTags as $successTag) {
             foreach ($metrics as $metricKey => $metricValue) {
-                $apcuKey = 'PhpMetrics_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $successTag . '_' . $metricKey . '_{{' . $this->tag . '}}';
+                $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $successTag . '_' . $metricKey . '_{{' . $this->tag . '}}';
                 $apcuValue = apcu_entry($apcuKey, fn() => 0);
                 if (($success && $successTag === 'success') || (!$success && $successTag === 'exception')) {
                     apcu_store($apcuKey, $apcuValue + $metricValue);
@@ -324,24 +324,14 @@ class APCU_Logger extends BaseLogger
         }
 
         // Increment metrics
-        $apcuKey = 'PhpMetrics_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $customMetric['metric'] . '_{{' . $customMetric['tag'] . '}}';
+        $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $customMetric['metric'] . '_{{' . $customMetric['tag'] . '}}';
         $apcuValue = apcu_entry($apcuKey, fn() => 0);
         apcu_store($apcuKey, $apcuValue + $customMetric['value']);
     }
 
-    public function setLogPath(string $logPath): void
-    {
-        $this->logPath = $logPath;
-    }
-
-    public function getLogPath(): string
-    {
-        return $this->logPath;
-    }
-
     public function getLogs(): void
     {
-        $baseDir = $this->logPath . '/metrics/';
+        $baseDir = $this->logPath . '/metrics/' . $this->project . '/';
 
         if (file_exists($baseDir . '.processing')) {
             http_response_code(400);
@@ -387,8 +377,21 @@ class APCU_Logger extends BaseLogger
                 }
             }
 
+            // Remove old archives (older, then 30 days)
+            $logArchives = glob($baseDir . '????-??-??T??.zip') ?: [];
+            foreach ($logArchives as $logArchive) {
+                $modificationTime = filemtime($logArchive);
+                $currentTime = time();
+                if (($this->logMaxAge > 0) && $currentTime - $modificationTime > (86400 * $this->logMaxAge)) {
+                    unlink($logArchive);
+                }
+            }
+
+            // Prepare archive list
             $logArchives = glob($baseDir . '????-??-??T??.zip') ?: [];
             $logArchives = array_map(fn($logArchive) => substr($logArchive, -17, 13), $logArchives);
+
+            // Output
             header('Content-Type: application/json');
             echo json_encode($logArchives);
         } else {
@@ -418,7 +421,7 @@ class APCU_Logger extends BaseLogger
             return 0;
         }
 
-        preg_match_all('~([0-9.]+).*id~im', $data, $matchArr);
+        preg_match_all('~([0-9.]+)\s*id~im', $data, $matchArr);
 
         $idle = floatVal($matchArr[1][0]);
 

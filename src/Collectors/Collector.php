@@ -31,6 +31,7 @@ class Collector implements CollectorInterface
 
     public function __construct()
     {
+        $this->processStartTimestamp = microtime(true);
     }
 
     /**
@@ -43,8 +44,6 @@ class Collector implements CollectorInterface
 
         switch ($eventType) {
             case 'PROCESS_START':
-                $this->processStartTimestamp = microtime(true);
-                break;
             case 'ROUTE_START':
                 break;
             case 'ROUTE_FINISH_EXCEPTION':
@@ -81,6 +80,8 @@ class Collector implements CollectorInterface
     protected function _getProcessMemoryUsage(): float
     {
         $data = getrusage();
-        return isset($data['ru_maxrss']) ? round($data['ru_maxrss'] / 1024, 2) : 0;
+        return isset($data['ru_maxrss']) ? round(intval($data['ru_maxrss']) / 1024, 2) : 0;
     }
+
+
 }

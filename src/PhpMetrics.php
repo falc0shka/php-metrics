@@ -22,9 +22,9 @@ final class PhpMetrics
     private bool $enableMetrics = false;
 
     private string $collectorType = 'B2B';
-    
+
     private string $loggerType = 'APCU';
-    
+
     private array $allowedEvents = [
         'PROCESS_START',
         'ROUTE_START',
@@ -78,7 +78,7 @@ final class PhpMetrics
         if (!in_array($eventType, $this->allowedEvents)) {
             throw new Exception("Invalid event type");
         }
-        
+
         if ($this->enableMetrics) {
             $this->collector->processEvent($eventType);
             $standardMetrics = $this->collector->getStandardMetrics();
@@ -88,9 +88,23 @@ final class PhpMetrics
         return self::$instance;
     }
 
+    public function setProject(string $project): PhpMetrics
+    {
+        $this->logger->setProject($project);
+
+        return self::$instance;
+    }
+
     public function setLogPath(string $path): PhpMetrics
     {
         $this->logger->setLogPath($path);
+
+        return self::$instance;
+    }
+
+    public function setLogMaxAge(int $logMaxAge): PhpMetrics
+    {
+        $this->logger->setLogMaxAge($logMaxAge);
 
         return self::$instance;
     }
@@ -126,5 +140,5 @@ final class PhpMetrics
     public function getLogs() {
         $this->logger->getLogs();
     }
-    
+
 }

@@ -19,6 +19,12 @@ interface LoggerInterface
 
     public function getLogs(): void;
 
+    public function setLogPath(string $logPath): void;
+
+    public function getLogPath(): string;
+
+    public function setLogMaxAge(int $logMaxAge): void;
+
     public function enableSystemMetrics(): void;
 
 }
