@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## 1.7.0 - 2025-11-08
+
+### Features
+
+* Add separating log files by projects
+* Add log files max age setting
+
+---
+
 ## 1.6.0 - 2025-10-06
 
 ### Features

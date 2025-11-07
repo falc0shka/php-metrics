@@ -91,8 +91,10 @@
 3. Настройка
 
     ```php
-    $phpMetrics->setTag($module . '::' . $action)          // Установить tag для текущего запроса
-                ->setLogPath(dirname(__FILE__) . '/log');   // Установить путь для сохранения файлов (для файловых логгеров)
+    $samoMetrics->setTag($module . '::' . $action)          // Установить tag для текущего запроса
+        ->setProject('test_project')                        // Установить название проекта
+        ->setLogMaxAge(30)                                  // Установить срок жизни лог файлов
+        ->setLogPath(dirname(__FILE__) . '/log');           // Установить путь для сохранения файлов (для файловых логгеров)
     ```
 
 4. Отключение
@@ -149,44 +151,4 @@
 
     ```php
     $phpMetrics->enableSystemMetrics();
-    ```
-
-## Дополнительные возможности
-
-1. Получить текущие значения метрик (DEPRECATED)
-
-    ```php
-    $phpMetrics->getMetrics();
-    ```
-   
-2. Возможно установить метрики самостоятельно, а не использовать события (DEPRECATED)
-
-    ```php
-    $phpMetrics->setMetrics($standardMetrics);
-    ```
-   
-    Формат $standardMetrics
-
-    ```php
-    $standardMetrics = [
-        'metric1' => value1,
-        'metric2' => value2,
-        'metric3' => value3,
-    ];
-    ```
-
-    Пример:
-
-    ```php
-    // Calculate any metric
-    $metricValue = calculateMetric();
-    
-    // Get current standardMetrics
-    $standardMetrics = $phpMetrics->getMetrics();
-    
-    // Update metric value
-    $standardMetrics['metricKey'] = $metricValue;
-    
-    // Set standardMetrics
-    $phpMetrics->setMetrics($standardMetrics);
     ```
