@@ -152,3 +152,11 @@
     ```php
     $phpMetrics->enableSystemMetrics();
     ```
+
+8. Включение общих метрик со всех проектов
+
+    Для включения процесса сбора общих метрик со всех проектов
+
+    ```php
+    $phpMetrics->enableAllProjectsMetrics();
+    ```

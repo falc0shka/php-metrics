@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 1.8.0 - 2025-11-25
+
+### Features
+
+* Add combined metrics from all projects in separate folder
+
+---
+
 ## 1.7.0 - 2025-11-08
 
 ### Features
