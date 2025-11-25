@@ -42,6 +42,19 @@ class APCU_Logger extends BaseLogger
      */
     public function processEvent(string $eventType, array $standardMetrics, ?array $customMetric): void
     {
+        $currentProject = $this->getProject();
+
+        // Handle event for all projects
+        $this->setProject('all');
+        $this->processEventHandler($eventType, $standardMetrics, $customMetric);
+
+        // Handle event for current project
+        $this->setProject($currentProject);
+        $this->processEventHandler($eventType, $standardMetrics, $customMetric);
+    }
+
+    protected function processEventHandler(string $eventType, array $standardMetrics, ?array $customMetric): void
+    {
         switch ($eventType) {
             case 'PROCESS_START':
                 // Save previous APCU data
@@ -82,7 +95,7 @@ class APCU_Logger extends BaseLogger
         }
     }
 
-    public function saveApcuData(): void
+    protected function saveApcuData(): void
     {
         $currentApcuId = $this->currentApcuId;
 
@@ -161,7 +174,7 @@ class APCU_Logger extends BaseLogger
     {
         $logPath = $this->logPath . '/metrics/' . $this->project . '/' . date('Y-m-d\TH', $apcuId * 60);
         if (!file_exists($logPath)) {
-            mkdir($logPath, 0777, true);
+            mkdir($logPath, 0775, true);
         }
         $logFile = $logPath . '/metrics_' . date('Y-m-d\TH-i', $apcuId * 60);
 
@@ -332,6 +345,12 @@ class APCU_Logger extends BaseLogger
     public function getLogs(): void
     {
         $baseDir = $this->logPath . '/metrics/' . $this->project . '/';
+
+        if (!file_exists($baseDir)) {
+            http_response_code(400);
+            echo 'There is no project data...';
+            exit;
+        }
 
         if (file_exists($baseDir . '.processing')) {
             http_response_code(400);

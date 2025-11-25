@@ -25,6 +25,10 @@ interface LoggerInterface
 
     public function setLogMaxAge(int $logMaxAge): void;
 
+    public function setProject(string $project): void;
+
+    public function getProject(): string;
+
     public function enableSystemMetrics(): void;
 
 }

@@ -85,6 +85,11 @@ class BaseLogger implements LoggerInterface
         }
     }
 
+    public function getProject(): string
+    {
+        return $this->project;
+    }
+
     function formatProjectName(string $project): string
     {
         $project = trim($project);
