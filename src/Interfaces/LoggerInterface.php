@@ -31,4 +31,6 @@ interface LoggerInterface
 
     public function enableSystemMetrics(): void;
 
+    public function enableAllProjectsMetrics(): void;
+
 }

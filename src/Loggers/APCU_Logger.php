@@ -42,14 +42,15 @@ class APCU_Logger extends BaseLogger
      */
     public function processEvent(string $eventType, array $standardMetrics, ?array $customMetric): void
     {
-        $currentProject = $this->getProject();
-
-        // Handle event for all projects
-        $this->setProject('all');
-        $this->processEventHandler($eventType, $standardMetrics, $customMetric);
+        if ($this->enableAllProjectsMetrics) {
+            // Handle event for all projects
+            $currentProject = $this->getProject();
+            $this->setProject('all');
+            $this->processEventHandler($eventType, $standardMetrics, $customMetric);
+            $this->setProject($currentProject);
+        }
 
         // Handle event for current project
-        $this->setProject($currentProject);
         $this->processEventHandler($eventType, $standardMetrics, $customMetric);
     }
 

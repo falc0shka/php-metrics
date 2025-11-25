@@ -39,7 +39,9 @@ class BaseLogger implements LoggerInterface
      */
     protected float $loggingStartTimestamp;
 
-    public bool $enableSystemMetrics = false;
+    protected bool $enableSystemMetrics = false;
+
+    protected bool $enableAllProjectsMetrics = false;
 
     public function __construct(array $standardMetrics)
     {
@@ -61,6 +63,11 @@ class BaseLogger implements LoggerInterface
     public function enableSystemMetrics(): void
     {
         $this->enableSystemMetrics = true;
+    }
+
+    public function enableAllProjectsMetrics(): void
+    {
+        $this->enableAllProjectsMetrics = true;
     }
 
     public function setLogPath(string $logPath): void

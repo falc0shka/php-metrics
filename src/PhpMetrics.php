@@ -136,6 +136,12 @@ final class PhpMetrics
 
         return self::$instance;
     }
+    public function enableAllProjectsMetrics(): PhpMetrics
+    {
+        $this->logger->enableAllProjectsMetrics();
+
+        return self::$instance;
+    }
 
     public function getLogs() {
         $this->logger->getLogs();
