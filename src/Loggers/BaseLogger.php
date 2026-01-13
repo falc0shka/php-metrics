@@ -24,6 +24,8 @@ class BaseLogger implements LoggerInterface
         'system_load_average',
         'system_memory_usage',
         'system_memory_max',
+        'system_disk_free_space',
+        'system_disk_total_space',
     ];
 
     protected array $standardMetrics;

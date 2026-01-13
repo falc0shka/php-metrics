@@ -103,72 +103,37 @@ class APCU_Logger extends BaseLogger
         $currentApcuId = $this->currentApcuId;
 
         if ($this->isEven) {
-            $apcuEvenIdKey = 'PhpMetrics_' . $this->project . '_EVEN_id';
-            if (!apcu_exists($apcuEvenIdKey)) {
-                apcu_store($apcuEvenIdKey, $currentApcuId);
-                $apcuEvenId = $currentApcuId;
-            } else {
-                $apcuEvenId = apcu_fetch($apcuEvenIdKey);
-            }
-
-            // Perform saving from APCU even metrics to file
-            if ($apcuEvenId !== $currentApcuId) {
-
-                $this->loggingStartTimestamp = microtime(true);
-
-                apcu_store($apcuEvenIdKey, $currentApcuId);
-                $this->saveApcuToFile($apcuEvenId);
-
-                $loggingTime = round(microtime(true) - $this->loggingStartTimestamp, 3);
-
-                // Increment logging metrics
-                $this->incrementApcuBaseMetric('logging_max_memory', $this->_getProcessMemoryUsage());
-                $this->incrementApcuBaseMetric('logging_execution_time', $loggingTime);
-
-                if ($this->enableSystemMetrics) {
-                    // Collect system cpu usage
-                    $this->incrementApcuBaseMetric('system_cpu_usage', $this->_getCpuUsage());
-                    // Collect system load average
-                    $this->incrementApcuBaseMetric('system_load_average', $this->_getLoadAverage());
-                    // Collect system memory usage
-                    $this->incrementApcuBaseMetric('system_memory_usage', $this->_getSystemMemoryUsage());
-                    // Collect system memory installed
-                    $this->incrementApcuBaseMetric('system_memory_max', $this->_getSystemMemoryMax());
-                }
-            }
+            $apcuIdKey = 'PhpMetrics_' . $this->project . '_EVEN_id';
         } else {
-            $apcuOddIdKey = 'PhpMetrics_' . $this->project . '_ODD_id';
-            if (!apcu_exists($apcuOddIdKey)) {
-                apcu_store($apcuOddIdKey, $currentApcuId);
-                $apcuOddId = $currentApcuId;
-            } else {
-                $apcuOddId = apcu_fetch($apcuOddIdKey);
-            }
+            $apcuIdKey = 'PhpMetrics_' . $this->project . '_ODD_id';
+        }
 
-            // Perform saving from APCU odd metrics to file
-            if ($apcuOddId !== $currentApcuId) {
+        if (!apcu_exists($apcuIdKey)) {
+            apcu_store($apcuIdKey, $currentApcuId);
+            $apcuId = $currentApcuId;
+        } else {
+            $apcuId = apcu_fetch($apcuIdKey);
+        }
 
-                $this->loggingStartTimestamp = microtime(true);
+        // Perform saving from APCU to file and collect system metrics
+        if ($apcuId !== $currentApcuId) {
 
-                apcu_store($apcuOddIdKey, $currentApcuId);
-                $this->saveApcuToFile($apcuOddId);
+            $this->loggingStartTimestamp = microtime(true);
 
-                $loggingTime = round(microtime(true) - $this->loggingStartTimestamp, 3);
+            apcu_store($apcuIdKey, $currentApcuId);
 
-                // Increment logging metrics
-                $this->incrementApcuBaseMetric('logging_max_memory', $this->_getProcessMemoryUsage());
-                $this->incrementApcuBaseMetric('logging_execution_time', $loggingTime);
+            // Save metrics to file
+            $this->saveApcuToFile($apcuId);
 
-                if ($this->enableSystemMetrics) {
-                    // Collect system cpu usage
-                    $this->incrementApcuBaseMetric('system_cpu_usage', $this->_getCpuUsage());
-                    // Collect system load average
-                    $this->incrementApcuBaseMetric('system_load_average', $this->_getLoadAverage());
-                    // Collect system memory usage
-                    $this->incrementApcuBaseMetric('system_memory_usage', $this->_getSystemMemoryUsage());
-                    // Collect system memory installed
-                    $this->incrementApcuBaseMetric('system_memory_max', $this->_getSystemMemoryMax());
-                }
+            $loggingTime = round(microtime(true) - $this->loggingStartTimestamp, 3);
+
+            // Increment logging metrics
+            $this->incrementApcuBaseMetric('logging_max_memory', $this->_getProcessMemoryUsage());
+            $this->incrementApcuBaseMetric('logging_execution_time', $loggingTime);
+
+            // Collect system metrics
+            if ($this->enableSystemMetrics) {
+                $this->collectSystemMetrics();
             }
         }
     }
@@ -496,5 +461,39 @@ class APCU_Logger extends BaseLogger
         }
 
         return floatval(preg_split('/\s+/', trim($data))[0]);
+    }
+
+
+    protected function _getSystemDiskFreeSpace(): float
+    {
+        $data = disk_free_space('.');
+
+        return $data ? round(intval($data) / 1024, 2) : 0;
+    }
+
+    protected function _getSystemDiskTotalSpace(): float
+    {
+        $data = disk_total_space('.');
+
+        return $data ? round(intval($data) / 1024, 2) : 0;
+    }
+
+    /**
+     * @return void
+     */
+    public function collectSystemMetrics(): void
+    {
+        // Collect system cpu usage
+        $this->incrementApcuBaseMetric('system_cpu_usage', $this->_getCpuUsage());
+        // Collect system load average
+        $this->incrementApcuBaseMetric('system_load_average', $this->_getLoadAverage());
+        // Collect system memory usage
+        $this->incrementApcuBaseMetric('system_memory_usage', $this->_getSystemMemoryUsage());
+        // Collect system memory installed
+        $this->incrementApcuBaseMetric('system_memory_max', $this->_getSystemMemoryMax());
+        // Collect system free disk space
+        $this->incrementApcuBaseMetric('system_disk_free_space', $this->_getSystemDiskFreeSpace());
+        // Collect system total disk space
+        $this->incrementApcuBaseMetric('system_disk_total_space', $this->_getSystemDiskTotalSpace());
     }
 }
