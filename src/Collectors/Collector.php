@@ -18,6 +18,7 @@ class Collector implements CollectorInterface
         'api_requests' => 0,
         'api_requests_time' => 0,
         'api_requests_time_max' => 0,
+        'validation_errors' => 0,
     ];
 
     /**
@@ -67,6 +68,9 @@ class Collector implements CollectorInterface
                 $apiRequestTime = round(microtime(true) - $this->apiRequestTimestamp, 3);
                 $this->standardMetrics['api_requests_time'] += $apiRequestTime;
                 $this->standardMetrics['api_requests_time_max'] = max($this->standardMetrics['api_requests_time_max'], $apiRequestTime);
+                break;
+            case 'VALIDATION_ERROR':
+                $this->standardMetrics['validation_errors']++;
                 break;
             default:
         }

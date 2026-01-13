@@ -34,6 +34,7 @@ final class PhpMetrics
         'DB_RESPONSE',
         'API_REQUEST',
         'API_RESPONSE',
+        'VALIDATION_ERROR',
         'CUSTOM_METRIC',
     ];
 
@@ -76,7 +77,8 @@ final class PhpMetrics
     public function dispatchEvent(string $eventType, ?array $customMetric = null): PhpMetrics
     {
         if (!in_array($eventType, $this->allowedEvents)) {
-            throw new Exception("Invalid event type");
+            //throw new Exception("Invalid event type");
+            return self::$instance;
         }
 
         if ($this->enableMetrics) {
