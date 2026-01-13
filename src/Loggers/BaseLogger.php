@@ -72,7 +72,7 @@ class BaseLogger implements LoggerInterface
 
     public function setLogPath(string $logPath): void
     {
-        $this->logPath = $logPath;
+        $this->logPath = rtrim($logPath, '/\\');
     }
 
     public function getLogPath(): string

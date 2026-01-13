@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Falc0shka\PhpMetrics\Loggers;
 
+use Exception;
 use ZipArchive;
 
 class APCU_Logger extends BaseLogger
@@ -32,9 +33,6 @@ class APCU_Logger extends BaseLogger
 
         // Set current APCU id type (EVEN/ODD)
         $this->isEven = $this->currentApcuId % 2 === 0;
-
-        // Set default logPath
-        $this->logPath = dirname(__FILE__) . '/log';
     }
 
     /**
@@ -42,6 +40,10 @@ class APCU_Logger extends BaseLogger
      */
     public function processEvent(string $eventType, array $standardMetrics, ?array $customMetric): void
     {
+        if (empty($this->logPath)) {
+            throw new Exception("You must set log path");
+        }
+
         if ($this->enableAllProjectsMetrics) {
             // Handle event for all projects
             $currentProject = $this->getProject();
@@ -173,11 +175,11 @@ class APCU_Logger extends BaseLogger
 
     protected function saveApcuToFile(int $apcuId): void
     {
-        $logPath = $this->logPath . '/metrics/' . $this->project . '/' . date('Y-m-d\TH', $apcuId * 60);
+        $logPath = $this->logPath . DIRECTORY_SEPARATOR . 'metrics' . DIRECTORY_SEPARATOR . $this->project . DIRECTORY_SEPARATOR . date('Y-m-d\TH', $apcuId * 60);
         if (!file_exists($logPath)) {
             mkdir($logPath, 0775, true);
         }
-        $logFile = $logPath . '/metrics_' . date('Y-m-d\TH-i', $apcuId * 60);
+        $logFile = $logPath . DIRECTORY_SEPARATOR . 'metrics_' . date('Y-m-d\TH-i', $apcuId * 60);
 
         $apcuTagsKey = $this->getApcuTagsKey();
         $apcuTags = apcu_entry($apcuTagsKey, fn() => []);
@@ -345,7 +347,7 @@ class APCU_Logger extends BaseLogger
 
     public function getLogs(): void
     {
-        $baseDir = $this->logPath . '/metrics/' . $this->project . '/';
+        $baseDir = $this->logPath . DIRECTORY_SEPARATOR . 'metrics' . DIRECTORY_SEPARATOR . $this->project . DIRECTORY_SEPARATOR;
 
         if (!file_exists($baseDir)) {
             http_response_code(400);
@@ -376,7 +378,7 @@ class APCU_Logger extends BaseLogger
                     $archiveFile->open($logFolder . '.zip', ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
                     // Add log files to archive
-                    $logFiles = glob($logFolder . '/*');
+                    $logFiles = glob($logFolder . DIRECTORY_SEPARATOR . '*');
                     foreach ($logFiles as $logFile) {
                         $archiveFile->addFile($logFile, basename($logFile));
                     }
@@ -389,7 +391,7 @@ class APCU_Logger extends BaseLogger
                     rmdir($logFolder);
                 } elseif (file_exists($logFolder . '.zip')) {
                     // If archive is already exist, but folder hadn't been deleted, remove it
-                    $logFiles = glob($logFolder . '/*');
+                    $logFiles = glob($logFolder . DIRECTORY_SEPARATOR . '*');
                     foreach ($logFiles as $logFile) {
                         unlink($logFile);
                     }
