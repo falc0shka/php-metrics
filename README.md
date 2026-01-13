@@ -15,6 +15,7 @@
 - **DB_RESPONSE** - ответ БД
 - **API_REQUEST** - запрос внешних API
 - **API_RESPONSE** - ответ внешних API
+- **VALIDATION_ERROR** - ошибка валидации
 - **CUSTOM_METRIC** - событие для подсчета кастомной метрики
 
 ### Базовые метрики
@@ -27,6 +28,8 @@
 - **system_load_average** - среднее значение загруженности системы
 - **system_memory_usage** - рамер используемой памяти
 - **system_memory_max** - максимальный размер памяти
+- **system_disk_free_space** - свободное место на диске
+- **system_disk_total_space** - общее место на диске
 - **logging_max_memory** - максимальный расход памяти при формирования лога
 - **logging_execution_time** - время формирования лога
 - **logging_tags_count** - общее количество тегов
@@ -41,6 +44,7 @@
 - **success_api_requests** - количество запросов к внешним API
 - **success_api_requests_time** - общее время ожидания внешних API 
 - **success_api_requests_time_max** - максимальное время ожидания внешних API 
+- **success_validation_errors** - кол-во ошибок валидации 
 
 ### Метрики для окончаний работы скрипта по эксепшену
 
@@ -52,6 +56,7 @@
 - **exception_api_requests** - количество запросов к внешним API
 - **exception_api_requests_time** - общее время ожидания внешних API
 - **exception_api_requests_time_max** - максимальное время ожидания внешних API
+- **exception_validation_errors** - кол-во ошибок валидации
 
 ### Кастомные метрики
 
@@ -71,6 +76,7 @@
 - **api_requests** = count(API_REQUEST)
 - **api_requests_time** = time(API_RESPONSE) - time(API_REQUEST)
 - **api_requests_time_max** = max(time(API_RESPONSE) - time(API_REQUEST))
+- **validation_errors** = count(VALIDATION_ERROR)
 
 ## Использование в коде
 

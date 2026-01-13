@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## 1.9.0 - 2026-01-13
+
+### Features
+
+* Add log path checking
+* Add validation errors metric
+* Add disk free and total space system metrics
+
+---
+
 ## 1.8.0 - 2025-11-25
 
 ### Features
