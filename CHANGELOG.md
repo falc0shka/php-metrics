@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2.0.0 - 2026-01-19
+
+### Features
+
+* Add new methods for base event invoking
+
+Breaking backward compatibility:
+
+* Change metric creation and update mechanism through updateMetric() method
+
+Metrics must be explicitly created with updateMetric() method. This method supports params array for value and timings.
+
+---
+
 ## 1.9.0 - 2026-01-13
 
 ### Features
