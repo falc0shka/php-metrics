@@ -14,9 +14,9 @@ class APCU_Logger extends BaseLogger
 
     protected bool $isEven;
 
-    public function __construct(array $standardMetrics)
+    public function __construct()
     {
-        parent::__construct($standardMetrics);
+        parent::__construct();
 
         $this->initApcuLogger();
     }
@@ -38,7 +38,7 @@ class APCU_Logger extends BaseLogger
     /**
      * @inheritDoc
      */
-    public function processEvent(string $eventType, array $standardMetrics, ?array $customMetric): void
+    public function processEvent(string $eventType, array $requestMetrics = null): void
     {
         if (empty($this->logPath)) {
             throw new Exception("You must set log path");
@@ -48,15 +48,15 @@ class APCU_Logger extends BaseLogger
             // Handle event for all projects
             $currentProject = $this->getProject();
             $this->setProject('all');
-            $this->processEventHandler($eventType, $standardMetrics, $customMetric);
+            $this->processEventHandler($eventType, $requestMetrics);
             $this->setProject($currentProject);
         }
 
         // Handle event for current project
-        $this->processEventHandler($eventType, $standardMetrics, $customMetric);
+        $this->processEventHandler($eventType, $requestMetrics);
     }
 
-    protected function processEventHandler(string $eventType, array $standardMetrics, ?array $customMetric): void
+    protected function processEventHandler(string $eventType, array $requestMetrics): void
     {
         switch ($eventType) {
             case 'PROCESS_START':
@@ -75,25 +75,15 @@ class APCU_Logger extends BaseLogger
                 $this->incrementApcuBaseMetric('requests_finish_success_count', 1);
 
                 // Increment standard metrics
-                $this->incrementApcuStandardMetrics($standardMetrics);
+                $this->incrementApcuRequestMetrics($requestMetrics);
                 break;
-            case 'ROUTE_FINISH_EXCEPTION':
-                // Increment requests_finish_exception_count metric
-                $this->incrementApcuBaseMetric('requests_finish_exception_count', 1);
+            case 'ROUTE_FINISH_FAIL':
+                // Increment requests_finish_fail_count metric
+                $this->incrementApcuBaseMetric('requests_finish_fail_count', 1);
 
                 // Increment standard metrics
-                $this->incrementApcuStandardMetrics($standardMetrics, false);
+                $this->incrementApcuRequestMetrics($requestMetrics, false);
                 break;
-            case 'CUSTOM_METRIC':
-                // Increment custom metric
-                if ($customMetric) {
-                    $this->incrementApcuCustomMetric($customMetric);
-                }
-                break;
-            case 'DB_REQUEST':
-            case 'DB_RESPONSE':
-            case 'API_REQUEST':
-            case 'API_RESPONSE':
             default:
         }
     }
@@ -148,27 +138,29 @@ class APCU_Logger extends BaseLogger
 
         $apcuTagsKey = $this->getApcuTagsKey();
         $apcuTags = apcu_entry($apcuTagsKey, fn() => []);
+        $apcuMetricsKey = $this->getApcuMetricsKey();
+        $apcuMetrics = apcu_entry($apcuMetricsKey, fn() => []);
 
         // Save base metrics
         foreach ($this->baseMetrics as $metricKey) {
             foreach ($apcuTags as $apcuTag) {
-                $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $metricKey . '_{{' . $apcuTag . '}}';
+                $apcuKey = $this->getApcuTagPrefix() . '_' . $metricKey . '_{{' . $apcuTag . '}}';
                 if ($apcuValue = apcu_fetch($apcuKey)) {
-                    $row = "$metricKey,$apcuTag,$apcuValue\n";
+                    $row = "$metricKey,$apcuTag,$apcuValue" . PHP_EOL;
                     file_put_contents($logFile, $row, LOCK_EX | FILE_APPEND);
                     apcu_delete($apcuKey);
                 }
             }
         }
 
-        // Save standard metrics
-        foreach ($this->standardMetrics as $metricKey) {
-            $successTags = ['success', 'exception'];
+        // Save request metrics
+        foreach ($apcuMetrics as $metricKey) {
+            $successTags = ['success', 'fail'];
             foreach ($successTags as $successTag) {
                 foreach ($apcuTags as $apcuTag) {
-                    $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $successTag . '_' . $metricKey . '_{{' . $apcuTag . '}}';
+                    $apcuKey = $this->getApcuTagPrefix() . '_' . $successTag . '_' . $metricKey . '_{{' . $apcuTag . '}}';
                     if ($apcuValue = apcu_fetch($apcuKey)) {
-                        $row = "{$successTag}_$metricKey,$apcuTag,$apcuValue\n";
+                        $row = "{$successTag}_$metricKey,$apcuTag,$apcuValue" . PHP_EOL;
                         file_put_contents($logFile, $row, LOCK_EX | FILE_APPEND);
                         apcu_delete($apcuKey);
                     }
@@ -176,48 +168,24 @@ class APCU_Logger extends BaseLogger
             }
         }
 
-        // Save custom metrics
-        $apcuCustomTagsKey = $this->getApcuCustomTagsKey();
-        $apcuCustomMetricsKey = $this->getApcuCustomMetricsKey();
-        $apcuCustomTags = apcu_entry($apcuCustomTagsKey, fn() => []);
-        $apcuCustomMetrics = apcu_entry($apcuCustomMetricsKey, fn() => []);
-
-        foreach ($apcuCustomTags as $apcuCustomTag) {
-            foreach ($apcuCustomMetrics as $apcuCustomMetric) {
-                $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $apcuCustomMetric . '_{{' . $apcuCustomTag . '}}';
-                if ($apcuValue = apcu_fetch($apcuKey)) {
-                    $row = "$apcuCustomMetric,$apcuCustomTag,$apcuValue\n";
-                    file_put_contents($logFile, $row, LOCK_EX | FILE_APPEND);
-                }
-                apcu_delete($apcuKey);
-            }
-        }
-
         // Save tags count
-        $loggingTagsCount = count($apcuTags) + count($apcuCustomTags);
+        $loggingTagsCount = count($apcuTags);
         if ($loggingTagsCount > 0) {
-            $row = "logging_tags_count,UNKNOWN,$loggingTagsCount\n";
+            $row = "logging_tags_count,UNKNOWN,$loggingTagsCount" . PHP_EOL;
             file_put_contents($logFile, $row, LOCK_EX | FILE_APPEND);
         }
 
         apcu_delete($apcuTagsKey);
-        apcu_delete($apcuCustomTagsKey);
-        apcu_delete($apcuCustomMetricsKey);
     }
 
     protected function getApcuTagsKey(): string
     {
-        return 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_tags';
+        return $this->getApcuTagPrefix() . '_tags';
     }
 
-    protected function getApcuCustomTagsKey(): string
+    protected function getApcuMetricsKey(): string
     {
-        return 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_customTags';
-    }
-
-    protected function getApcuCustomMetricsKey(): string
-    {
-        return 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_customMetrics';
+        return $this->getApcuTagPrefix() . '_metrics';
     }
 
     /**
@@ -225,89 +193,48 @@ class APCU_Logger extends BaseLogger
      *
      * @param string $metricKey
      * @param        $metricValue
-     * @param string $tag
-     *
      * @return void
      */
     public function incrementApcuBaseMetric(string $metricKey, $metricValue): void
     {
         // Update tags store
-        $apcuTagsKey = $this->getApcuTagsKey();
-        $apcuTags = apcu_entry($apcuTagsKey, fn() => []);
-        if (!in_array($this->tag, $apcuTags)) {
-            $apcuTags[] = $this->tag;
-            apcu_store($apcuTagsKey, $apcuTags);
-        }
+        $this->updateTagsStore($this->tag);
 
         // Increment one metric
-        $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $metricKey . '_{{' . $this->tag . '}}';
+        $apcuKey = $this->getApcuTagPrefix() . '_' . $metricKey . '_{{' . $this->tag . '}}';
         $apcuValue = apcu_entry($apcuKey, fn() => 0);
         apcu_store($apcuKey, $apcuValue + $metricValue);
     }
 
     /**
-     * Increment all standard metrics at once
+     * Increment all request metrics at once
      *
      * @param array $metrics
-     * @param string $tag
      * @param bool $success
      *
      * @return void
      */
-    public function incrementApcuStandardMetrics(array $metrics, bool $success = true): void
+    public function incrementApcuRequestMetrics(array $metrics, bool $success = true): void
     {
         // Update tags store
-        $apcuTagsKey = $this->getApcuTagsKey();
-        $apcuTags = apcu_entry($apcuTagsKey, fn() => []);
-        if (!in_array($this->tag, $apcuTags)) {
-            $apcuTags[] = $this->tag;
-            apcu_store($apcuTagsKey, $apcuTags);
+        $this->updateTagsStore($this->tag);
+
+        // Update metrics store
+        foreach (array_keys($metrics) as $metric) {
+            $this->updateMetricsStore($metric);
         }
 
         // Increment metrics
-        $successTags = ['success', 'exception'];
+        $successTags = ['success', 'fail'];
         foreach ($successTags as $successTag) {
             foreach ($metrics as $metricKey => $metricValue) {
-                $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $successTag . '_' . $metricKey . '_{{' . $this->tag . '}}';
+                $apcuKey = $this->getApcuTagPrefix() . '_' . $successTag . '_' . $metricKey . '_{{' . $this->tag . '}}';
                 $apcuValue = apcu_entry($apcuKey, fn() => 0);
-                if (($success && $successTag === 'success') || (!$success && $successTag === 'exception')) {
+                if (($success && $successTag === 'success') || (!$success && $successTag === 'fail')) {
                     apcu_store($apcuKey, $apcuValue + $metricValue);
                 }
             }
         }
-    }
-
-    /**
-     * Increment optional metric
-     *
-     * @param array $metrics
-     * @param string $tag
-     * @param bool $success
-     *
-     * @return void
-     */
-    public function incrementApcuCustomMetric(array $customMetric): void
-    {
-        // Update custom tags store
-        $apcuCustomTagsKey = $this->getApcuCustomTagsKey();
-        $apcuCustomTags = apcu_entry($apcuCustomTagsKey, fn() => []);
-        if (!in_array($customMetric['tag'], $apcuCustomTags)) {
-            $apcuCustomTags[] = $customMetric['tag'];
-            apcu_store($apcuCustomTagsKey, $apcuCustomTags);
-        }
-
-        // Update custom metrics store
-        $apcuCustomMetricsKey = $this->getApcuCustomMetricsKey();
-        $apcuCustomMetrics = apcu_entry($apcuCustomMetricsKey, fn() => []);
-        if (!in_array($customMetric['metric'], $apcuCustomMetrics)) {
-            $apcuCustomMetrics[] = $customMetric['metric'];
-            apcu_store($apcuCustomMetricsKey, $apcuCustomMetrics);
-        }
-
-        // Increment metrics
-        $apcuKey = 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD') . '_' . $customMetric['metric'] . '_{{' . $customMetric['tag'] . '}}';
-        $apcuValue = apcu_entry($apcuKey, fn() => 0);
-        apcu_store($apcuKey, $apcuValue + $customMetric['value']);
     }
 
     public function getLogs(): void
@@ -495,5 +422,30 @@ class APCU_Logger extends BaseLogger
         $this->incrementApcuBaseMetric('system_disk_free_space', $this->_getSystemDiskFreeSpace());
         // Collect system total disk space
         $this->incrementApcuBaseMetric('system_disk_total_space', $this->_getSystemDiskTotalSpace());
+    }
+
+    public function getApcuTagPrefix(): string
+    {
+        return 'PhpMetrics_' . $this->project . '_' . ($this->isEven ? 'EVEN' : 'ODD');
+    }
+
+    public function updateTagsStore(string $tag): void
+    {
+        $apcuTagsKey = $this->getApcuTagsKey();
+        $apcuTags = apcu_entry($apcuTagsKey, fn() => []);
+        if (!in_array($tag, $apcuTags)) {
+            $apcuTags[] = $tag;
+            apcu_store($apcuTagsKey, $apcuTags);
+        }
+    }
+
+    public function updateMetricsStore($metric): void
+    {
+        $apcuMetricsKey = $this->getApcuMetricsKey();
+        $apcuMetrics = apcu_entry($apcuMetricsKey, fn() => []);
+        if (!in_array($metric, $apcuMetrics)) {
+            $apcuMetrics[] = $metric;
+            apcu_store($apcuMetricsKey, $apcuMetrics);
+        }
     }
 }

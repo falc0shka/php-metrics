@@ -11,11 +11,12 @@ interface CollectorInterface
      * Process event and collect values
      *
      * @param string $eventType
-     *
+     * @param array|null $eventParams
      * @return void
      */
-    public function processEvent(string $eventType): void;
+    public function processEvent(string $eventType, array $eventParams = null): array;
 
-    public function getStandardMetrics(): array;
+    public function getRequestMetrics(): array;
 
+    public function getCurrentTimestamp(): float;
 }

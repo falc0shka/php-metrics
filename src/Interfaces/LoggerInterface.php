@@ -11,11 +11,10 @@ interface LoggerInterface
      * Process event and perform logging
      *
      * @param string $eventType
-     * @param array $standardMetrics
-     * @param array|null $customMetric
+     * @param array $requestMetrics
      * @return void
      */
-    public function processEvent(string $eventType, array $standardMetrics, ?array $customMetric): void;
+    public function processEvent(string $eventType, array $requestMetrics): void;
 
     public function getLogs(): void;
 
@@ -32,5 +31,4 @@ interface LoggerInterface
     public function enableSystemMetrics(): void;
 
     public function enableAllProjectsMetrics(): void;
-
 }

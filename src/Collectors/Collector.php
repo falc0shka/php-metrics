@@ -9,16 +9,16 @@ use Falc0shka\PhpMetrics\Interfaces\CollectorInterface;
 class Collector implements CollectorInterface
 {
 
-    protected array $standardMetrics = [
+    protected array $requestMetrics = [
         'max_memory' => 0,
         'execution_time' => 0,
-        'db_requests' => 0,
-        'db_requests_time' => 0,
-        'db_requests_time_max' => 0,
-        'api_requests' => 0,
-        'api_requests_time' => 0,
-        'api_requests_time_max' => 0,
-        'validation_errors' => 0,
+//        'db_requests' => 0,
+//        'db_requests_time' => 0,
+//        'db_requests_time_max' => 0,
+//        'api_requests' => 0,
+//        'api_requests_time' => 0,
+//        'api_requests_time_max' => 0,
+//        'validation_errors' => 0,
     ];
 
     /**
@@ -26,59 +26,67 @@ class Collector implements CollectorInterface
      */
     protected float $processStartTimestamp;
 
-    protected float $dbRequestTimestamp;
-
-    protected float $apiRequestTimestamp;
-
     public function __construct()
     {
-        $this->processStartTimestamp = microtime(true);
+        $this->processStartTimestamp = $this->getCurrentTimestamp();
     }
 
     /**
      * @inheritDoc
      */
-    public function processEvent(string $eventType): void
+    public function processEvent(string $eventType, array $eventParams = null): array
     {
-        // Collect memory usage
-        $this->standardMetrics['max_memory'] = max($this->standardMetrics['max_memory'], $this->_getProcessMemoryUsage());
-
         switch ($eventType) {
             case 'PROCESS_START':
             case 'ROUTE_START':
                 break;
-            case 'ROUTE_FINISH_EXCEPTION':
             case 'ROUTE_FINISH_SUCCESS':
-                $this->standardMetrics['execution_time'] = round(microtime(true) - $this->processStartTimestamp, 3);
+            case 'ROUTE_FINISH_FAIL':
+                $this->requestMetrics['execution_time'] = round($this->getCurrentTimestamp() - $this->processStartTimestamp, 3);
                 break;
-            case 'DB_REQUEST':
-                $this->standardMetrics['db_requests']++;
-                $this->dbRequestTimestamp = microtime(true);
-                break;
-            case 'DB_RESPONSE':
-                $dbRequestTime = round(microtime(true) - $this->dbRequestTimestamp, 3);
-                $this->standardMetrics['db_requests_time'] += $dbRequestTime;
-                $this->standardMetrics['db_requests_time_max'] = max($this->standardMetrics['db_requests_time_max'], $dbRequestTime);
-                break;
-            case 'API_REQUEST':
-                $this->standardMetrics['api_requests']++;
-                $this->apiRequestTimestamp = microtime(true);
-                break;
-            case 'API_RESPONSE':
-                $apiRequestTime = round(microtime(true) - $this->apiRequestTimestamp, 3);
-                $this->standardMetrics['api_requests_time'] += $apiRequestTime;
-                $this->standardMetrics['api_requests_time_max'] = max($this->standardMetrics['api_requests_time_max'], $apiRequestTime);
-                break;
-            case 'VALIDATION_ERROR':
-                $this->standardMetrics['validation_errors']++;
+            case 'UPDATE_METRIC':
+                $metricBaseName = strtolower($eventParams['metric']);
+
+                $metricName = $metricBaseName;
+                $this->requestMetrics[$metricName] = $this->requestMetrics[$metricName] ?? 0;
+                $this->requestMetrics[$metricName]++;
+
+                if (!empty($eventParams['value'])) {
+                    $metricName = $metricBaseName . '_value';
+                    $this->requestMetrics[$metricName] = $this->requestMetrics[$metricName] ?? 0;
+                    $this->requestMetrics[$metricName] += $eventParams['value'];
+                }
+
+                if (!empty($eventParams['execution_time']) || !empty($eventParams['time_start'])) {
+                    $metricTimeName = "{$metricBaseName}_time";
+                    $metricTimeMaxName = "{$metricBaseName}_time_max";
+
+                    $this->requestMetrics[$metricTimeName] = $this->requestMetrics[$metricTimeName] ?? 0;
+
+                    if (!empty($eventParams['execution_time'])) {
+                        $executionTime = $eventParams['execution_time'];
+                    } else {
+                        $executionTime = round(max($this->getCurrentTimestamp() - $eventParams['time_start'], 0), 3);
+                    }
+
+                    $this->requestMetrics[$metricTimeName] += $executionTime;
+
+                    $this->requestMetrics[$metricTimeMaxName] = $this->requestMetrics[$metricTimeMaxName] ?? 0;
+                    $this->requestMetrics[$metricTimeMaxName] = max($executionTime, $this->requestMetrics[$metricTimeMaxName]);
+                }
                 break;
             default:
         }
+
+        // Collect memory usage
+        $this->requestMetrics['max_memory'] = max($this->requestMetrics['max_memory'], $this->_getProcessMemoryUsage());
+
+        return $this->requestMetrics;
     }
 
-    public function getStandardMetrics(): array
+    public function getRequestMetrics(): array
     {
-        return $this->standardMetrics;
+        return $this->requestMetrics;
     }
 
     protected function _getProcessMemoryUsage(): float
@@ -87,5 +95,8 @@ class Collector implements CollectorInterface
         return isset($data['ru_maxrss']) ? round(intval($data['ru_maxrss']) / 1024, 2) : 0;
     }
 
-
+    public function getCurrentTimestamp(): float
+    {
+        return microtime(true);
+    }
 }

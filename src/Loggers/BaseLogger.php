@@ -17,7 +17,7 @@ class BaseLogger implements LoggerInterface
         'requests_hit_count',
         'requests_start_count',
         'requests_finish_success_count',
-        'requests_finish_exception_count',
+        'requests_finish_fail_count',
         'logging_max_memory',
         'logging_execution_time',
         'system_cpu_usage',
@@ -27,10 +27,6 @@ class BaseLogger implements LoggerInterface
         'system_disk_free_space',
         'system_disk_total_space',
     ];
-
-    protected array $standardMetrics;
-
-    protected array $customMetrics = [];
 
     protected string $logPath;
 
@@ -45,15 +41,14 @@ class BaseLogger implements LoggerInterface
 
     protected bool $enableAllProjectsMetrics = false;
 
-    public function __construct(array $standardMetrics)
+    public function __construct()
     {
-        $this->standardMetrics = array_keys($standardMetrics);
     }
 
     /**
      * @inheritDoc
      */
-    public function processEvent(string $eventType, array $standardMetrics, ?array $customMetric): void {}
+    public function processEvent(string $eventType, array $requestMetrics = null): void {}
 
     public function setTag(string $tag): void
     {
@@ -99,7 +94,7 @@ class BaseLogger implements LoggerInterface
         return $this->project;
     }
 
-    function formatProjectName(string $project): string
+    protected function formatProjectName(string $project): string
     {
         $project = trim($project);
         $project = preg_replace('/[^a-zA-Z0-9_]/u', ' ', $project);

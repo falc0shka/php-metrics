@@ -21,21 +21,16 @@ final class PhpMetrics
 
     private bool $enableMetrics = false;
 
-    private string $collectorType = 'B2B';
+    private string $collectorClass = Collector::class;
 
-    private string $loggerType = 'APCU';
+    private string $loggerClass = APCU_Logger::class;
 
     private array $allowedEvents = [
         'PROCESS_START',
         'ROUTE_START',
         'ROUTE_FINISH_SUCCESS',
-        'ROUTE_FINISH_EXCEPTION',
-        'DB_REQUEST',
-        'DB_RESPONSE',
-        'API_REQUEST',
-        'API_RESPONSE',
-        'VALIDATION_ERROR',
-        'CUSTOM_METRIC',
+        'ROUTE_FINISH_FAIL',
+        'UPDATE_METRIC',
     ];
 
     /**
@@ -57,8 +52,8 @@ final class PhpMetrics
     private function __construct()
     {
         // TODO add collector and logger settings
-        $this->collector = new Collector();
-        $this->logger = new APCU_Logger($this->collector->getStandardMetrics());
+        $this->collector = new $this->collectorClass();
+        $this->logger = new $this->loggerClass($this->collector->getRequestMetrics());
     }
 
     /**
@@ -74,7 +69,7 @@ final class PhpMetrics
         throw new Exception("Cannot unserialize singleton");
     }
 
-    public function dispatchEvent(string $eventType, ?array $customMetric = null): PhpMetrics
+    public function dispatchEvent(string $eventType, array $eventParams = []): PhpMetrics
     {
         if (!in_array($eventType, $this->allowedEvents)) {
             //throw new Exception("Invalid event type");
@@ -82,10 +77,30 @@ final class PhpMetrics
         }
 
         if ($this->enableMetrics) {
-            $this->collector->processEvent($eventType);
-            $standardMetrics = $this->collector->getStandardMetrics();
-            $this->logger->processEvent($eventType, $standardMetrics, $customMetric);
+            $requestMetrics = $this->collector->processEvent($eventType, $eventParams);
+            $this->logger->processEvent($eventType, $requestMetrics);
         }
+
+        return self::$instance;
+    }
+
+    public function enableMetrics(): PhpMetrics
+    {
+        $this->enableMetrics = true;
+
+        return self::$instance;
+    }
+
+    public function disableMetrics(): PhpMetrics
+    {
+        $this->enableMetrics = false;
+
+        return self::$instance;
+    }
+
+    public function enableSystemMetrics(): PhpMetrics
+    {
+        $this->logger->enableSystemMetrics();
 
         return self::$instance;
     }
@@ -118,26 +133,6 @@ final class PhpMetrics
         return self::$instance;
     }
 
-    public function enableMetrics(): PhpMetrics
-    {
-        $this->enableMetrics = true;
-
-        return self::$instance;
-    }
-
-    public function disableMetrics(): PhpMetrics
-    {
-        $this->enableMetrics = false;
-
-        return self::$instance;
-    }
-
-    public function enableSystemMetrics(): PhpMetrics
-    {
-        $this->logger->enableSystemMetrics();
-
-        return self::$instance;
-    }
     public function enableAllProjectsMetrics(): PhpMetrics
     {
         $this->logger->enableAllProjectsMetrics();
@@ -149,4 +144,33 @@ final class PhpMetrics
         $this->logger->getLogs();
     }
 
+    public function getCurrentTimestamp() {
+        $this->collector->getCurrentTimestamp();
+    }
+
+    public function processStart(): PhpMetrics
+    {
+        return $this->dispatchEvent('PROCESS_START');
+    }
+
+    public function routeStart(): PhpMetrics
+    {
+        return $this->dispatchEvent('ROUTE_START');
+    }
+
+    public function routeFinishSuccess(): PhpMetrics
+    {
+        return $this->dispatchEvent('ROUTE_FINISH_SUCCESS');
+    }
+
+    public function routeFinishFail(): PhpMetrics
+    {
+        return $this->dispatchEvent('ROUTE_FINISH_FAIL');
+    }
+
+    public function updateMetric(string $metric, array $metricParams = []): PhpMetrics
+    {
+        $metricParams['metric'] = $metric;
+        return $this->dispatchEvent('UPDATE_METRIC', $metricParams);
+    }
 }
