@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## 2.1.0 - 2026-01-21
+
+### Features
+
+* Add request finish checking
+
+---
+
 ## 2.0.0 - 2026-01-19
 
 ### Features
