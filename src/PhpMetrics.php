@@ -33,6 +33,8 @@ final class PhpMetrics
         'UPDATE_METRIC',
     ];
 
+    private bool $requestFinished = false;
+
     /**
      * gets the instance via lazy initialization (created on first usage)
      */
@@ -160,11 +162,21 @@ final class PhpMetrics
 
     public function routeFinishSuccess(): PhpMetrics
     {
+        if ($this->requestFinished) {
+            return self::$instance;
+        }
+
+        $this->requestFinished = true;
         return $this->dispatchEvent('ROUTE_FINISH_SUCCESS');
     }
 
     public function routeFinishFail(): PhpMetrics
     {
+        if ($this->requestFinished) {
+            return self::$instance;
+        }
+
+        $this->requestFinished = true;
         return $this->dispatchEvent('ROUTE_FINISH_FAIL');
     }
 
