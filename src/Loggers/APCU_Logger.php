@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Falc0shka\PhpMetrics\Loggers;
 
 use Exception;
+use Throwable;
 use ZipArchive;
 
 class APCU_Logger extends BaseLogger
@@ -105,11 +106,12 @@ class APCU_Logger extends BaseLogger
             $apcuId = apcu_fetch($apcuIdKey);
         }
 
-        // Perform saving from APCU to file and collect system metrics
-        if ($apcuId !== $currentApcuId) {
-
+        // Perform saving from APCU to file and collect system metrics (with APCU lock)
+        $lockKey = 'PhpMetrics_APCU_Logger_lock_' . $this->project . '_' . $apcuId;
+        if ($apcuId !== $currentApcuId && apcu_add($lockKey, true, 3600)) {
             $this->loggingStartTimestamp = microtime(true);
 
+            // Switch APCU ID to current ID
             apcu_store($apcuIdKey, $currentApcuId);
 
             // Save metrics to file
@@ -131,9 +133,18 @@ class APCU_Logger extends BaseLogger
     protected function saveApcuToFile(int $apcuId): void
     {
         $logPath = $this->logPath . DIRECTORY_SEPARATOR . 'metrics' . DIRECTORY_SEPARATOR . $this->project . DIRECTORY_SEPARATOR . date('Y-m-d\TH', $apcuId * 60);
-        if (!file_exists($logPath)) {
-            mkdir($logPath, 0775, true);
+
+        // Try to create log folder
+        try {
+            if (!is_dir($logPath)) {
+                mkdir($logPath, 0775, true);
+            }
+        } catch (Throwable $e) {
+            if (!is_dir($logPath)) {
+                throw $e;
+            }
         }
+
         $logFile = $logPath . DIRECTORY_SEPARATOR . 'metrics_' . date('Y-m-d\TH-i', $apcuId * 60);
 
         $apcuTagsKey = $this->getApcuTagsKey();
