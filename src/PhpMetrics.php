@@ -185,4 +185,9 @@ final class PhpMetrics
         $metricParams['metric'] = $metric;
         return $this->dispatchEvent('UPDATE_METRIC', $metricParams);
     }
+
+    public function getRequestMetrics(): array
+    {
+        return $this->collector->getRequestMetrics();
+    }
 }
