@@ -147,7 +147,7 @@ final class PhpMetrics
     }
 
     public function getCurrentTimestamp() {
-        $this->collector->getCurrentTimestamp();
+        return $this->collector->getCurrentTimestamp();
     }
 
     public function processStart(): PhpMetrics
